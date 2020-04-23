@@ -1,0 +1,99 @@
+#!/bin/bash
+
+appname="${PWD##*/}"
+appPath="$(pwd)"
+configFile="$appPath/signConfig.txt"
+today=$(date +"+%Y-%m-%d %H:%M:%S")
+config_xml='./config.xml'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+
+if [ -e "$config_xml" ]; then
+  validDirectory=false
+else
+  echo -e  "\n${RED}this is not a valid ionic project directory.${NC}\n"
+  exit
+fi
+
+if [ -e "$configFile" ]; then
+  echo -e  "\n${RED}keystore has already been generated for this application.${NC}\n"
+  exit
+fi
+
+helpFunction() {
+  echo ""
+  echo -e "\t-p keystore password"
+  echo -e "\t-v app version"
+  echo -e "\t-a app alias name"
+  echo -e "\t-h help"
+  echo ""
+  exit 1 # Exit script after printing help
+}
+
+printConfig() {
+  file=$configFile
+  while IFS="=" read -r key value; do
+    case "$key" in
+    "alias") echo "alias : $value" ;;
+    "password") echo "keystore password : $value" ;;
+    esac
+  done <"$file"
+}
+
+while getopts "p:a:v:h" opt; do
+  case "$opt" in
+  p) password="$OPTARG" ;;
+  v) version="$OPTARG" ;;
+  a) alias="$OPTARG" ;;
+  h) helpFunction ;;
+
+  ?) helpFunction ;; # Print helpFunction in case parameter is non-existent
+  esac
+done
+
+while [ -z "$password" ]; do
+
+  echo "no password entered. default value will be set."
+  password="$appname#Key_1399"
+
+done
+
+while [ -z "$alias" ]; do
+
+  echo "no alias name entered. default value will be set."
+  alias=$appname
+
+done
+
+while [ -z "$version" ]; do
+
+  echo -e "\n${GREEN}please enter app version:${NC}"
+  read version
+
+done
+
+
+keystore="$appname-key"
+
+
+echo "appname=$appname" >>$configFile
+echo "alias=$alias" >>$configFile
+echo "password=$password" >>$configFile
+echo "keystore=$appPath/$keystore.keystore" >>$configFile
+echo "updated_at=$today" >>$configFile
+echo "last_version=$version" >>$configFile
+
+echo -e "${GREEN}sign data stored at $configFile${NC}"
+printConfig
+
+signedApk=$appname-signed-v$version.apk
+unsignedApk="./platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk"
+
+keytool -genkey -v -keystore $keystore.keystore -alias $alias -keyalg RSA -keysize 2048 -validity 10000 -storepass $password
+echo $password | jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore $keystore.keystore $unsignedApk $alias
+zipalign -v 4 $unsignedApk $signedApk.apk
+apksigner verify $signedApk.apk
+
+exec cowsay Yoohooo! your signed apk is ready at $appPath/$signedApk;

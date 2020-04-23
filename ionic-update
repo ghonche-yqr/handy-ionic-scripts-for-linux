@@ -1,0 +1,131 @@
+#!/bin/bash
+
+appname="${PWD##*/}"
+appPath="$(pwd)"
+configFile="$appPath/signConfig.txt"
+today=$(date +"+%Y-%m-%d %H:%M:%S")
+config_xml='./config.xml'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+
+helpFunction() {
+  echo ""
+  echo -e "\t-k keystore file path"
+  echo -e "\t-p keystore password"
+  echo -e "\t-v app version"
+  echo -e "\t-a app alias name"
+  echo -e "\t-h help"
+  echo ""
+  exit 1 # Exit script after printing help
+}
+
+readConfig() {
+  file=$configFile
+  while IFS="=" read -r key value; do
+    case "$key" in
+    "alias") default_alias=$value ;;
+    "password") default_password=$value ;;
+    "keystore") default_key=$value ;;
+    esac
+  done <"$file"
+}
+
+if [ -e "$config_xml" ]; then
+  validDirectory=false
+else
+  echo -e "\n${RED}this is not a valid ionic project directory.${NC}\n"
+  exit
+fi
+
+if [ -e "$configFile" ]; then
+  readConfig
+fi
+
+
+
+while getopts "p:k:v:a:h" opt; do
+  case "$opt" in
+  p) password="$OPTARG" ;;
+  k) keystore="$OPTARG" ;;
+  v) version="$OPTARG" ;;
+  a) alias="$OPTARG" ;;
+  h) helpFunction ;;
+
+  ?) helpFunction ;; # Print helpFunction in case parameter is non-existent
+  esac
+done
+
+while [ -z "$password" ]; do
+
+  if [ -e "$configFile" ]; then
+    echo "no password entered. password will be read from sign config file."
+    password="$default_password"
+  else
+    echo -e "\n${GREEN}please enter keystore password:${NC}"
+    read password
+  fi
+
+done
+
+while [ -z "$version" ]; do
+  echo -e "\n${GREEN}please specify release version:${NC}"
+  read version
+done
+
+while [ -z "$keystore" ]; do
+
+  if [ -e "$configFile" ]; then
+    echo "keystore path will be read from sign config file."
+    keystore="$default_key"
+  else
+    echo -e "\n${GREEN}please enter the keystore path:${NC}"
+    read keystore
+  fi
+
+done
+
+while [ -z "$alias" ]; do
+
+  if [ -e "$configFile" ]; then
+    echo "no alias name entered. alias name will be read from sign config file."
+    alias="$default_alias"
+  else
+    echo "please enter alias name:"
+    read alias
+  fi
+
+done
+
+invalidPath=true
+
+if [ -e "$keystore" ]; then
+  invalidPath=false
+else
+  invalidPath=true
+fi
+
+while $invalidPath; do
+  echo -e "\n${RED}$keystore does not exist.${NC}"
+  echo -e "\n${GREEN}please enter a valid path for keystore:${NC}"
+  read keystore
+
+  if [ -e "$key" ]; then
+    invalidPath=false
+  fi
+
+done
+
+echo "-----------------------------------------" >>$configFile
+echo "updated_at=$today" >>$configFile
+echo "last_version=$version" >>$configFile
+
+
+signedApk=$appname-signed-v$version.apk
+unsignedApk="./platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk"
+
+echo $password | jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore $keystore $unsignedApk $alias
+zipalign -v 4 $unsignedApk $signedApk.apk
+apksigner verify $signedApk.apk
+
+exec cowsay Yoohooo! your signed apk is ready at $appPath/$signedApk;

@@ -1,0 +1,15 @@
+#!/bin/bash
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
+configFile="$appPath/signConfig.txt"
+if [ -e "$config_xml" ]; then
+  validDirectory=false
+else
+  echo -e  "\n${RED}this is not a valid ionic project directory.${NC}\n"
+  exit
+fi
+
+
+adb install -r ./platforms/android/app/build/outputs/apk/debug/app-debug.apk
