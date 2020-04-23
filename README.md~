@@ -11,4 +11,4 @@ sudo cp '/bin/ionic-build' '/bin/ionic-install' '/bin/ionic-release' '/bin/ionic
 
 sudo chmod +x '/bin/ionic-build' '/bin/ionic-install' '/bin/ionic-release' '/bin/ionic-sign' '/bin/ionic-update'
 ```
-
+use them only in ionic project direcory
