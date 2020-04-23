@@ -3,7 +3,8 @@
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
-configFile="$appPath/signConfig.txt"
+config_xml='./config.xml'
+
 if [ -e "$config_xml" ]; then
   validDirectory=false
 else
