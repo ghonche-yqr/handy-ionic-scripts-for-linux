@@ -125,7 +125,7 @@ signedApk=$appname-signed-v$version.apk
 unsignedApk="./platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk"
 
 echo $password | jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore $keystore $unsignedApk $alias
-zipalign -v 4 $unsignedApk $signedApk.apk
-apksigner verify $signedApk.apk
+zipalign -v 4 $unsignedApk $signedApk
+apksigner verify $signedApk
 
 exec cowsay Yoohooo! your signed apk is ready at $appPath/$signedApk;
